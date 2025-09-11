@@ -73,6 +73,11 @@
           opacity: 0.8;
           transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
           z-index: 1000;
+          /* For <a> tag to behave like button */
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
         }
         #homeButton:hover {
           transform: scale(1.1);
@@ -209,7 +214,7 @@
     </div>
 
     <a id="homeButton" href="https://duanechn.github.io/" title="返回主页">
-        <i class="fa-solid fa-house"></i>
+        <i class="fa-solid fa-arrows-rotate"></i>
     </a>
 
 <script>
@@ -324,7 +329,6 @@
             updateAndDisplay(logicalModifiers);
             needsReset = false;
         } else { // Is a normal key
-            const logicalKeyId = getLogicalKeyId(keyCode);
             const displayKeys = new Set(heldModifiers);
             displayKeys.add(keyCode);
             
