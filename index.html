@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale-1.0">
   <!-- 使用 FontAwesome 提供图标 -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <title>duanechn</title>
@@ -58,19 +58,21 @@
       position: fixed;
       bottom: 20px;
       right: 20px;
-      padding: 10px;
+      padding: 8px; /* 减小内边距以缩小按钮 */
       border: none;
       cursor: pointer;
       border-radius: 50%;
       background-color: #1f1f1f;
-      transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
-      color: #eee; /* 保持图标为浅色以便查看 */
-      font-size: 24px; /* 控制图标大小 */
+      color: #eee;
+      font-size: 16px; /* 减小图标大小 */
+      opacity: 0.8; /* 设置透明度为80% */
+      transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
     }
 
     #colorChangeButton:hover {
       transform: scale(1.1);
       background-color: #222;
+      opacity: 1; /* 鼠标悬停时不透明 */
     }
 
     .rotate {
@@ -197,13 +199,19 @@
 
         const linkPromises = fileList.map(async (file) => {
             try {
-                const contentResponse = await fetch(file.download_url);
-                if (!contentResponse.ok) return { href: file.path, title: file.name };
-                
-                const htmlContent = await contentResponse.text();
-                const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
-                const title = titleMatch && titleMatch[1] ? titleMatch[1] : file.name.replace(/[-_]/g, ' ');
-                return { href: file.path, title: title };
+                // 只尝试获取 .html 或 .htm 文件的标题
+                if (/\.html?$/i.test(file.name)) {
+                    const contentResponse = await fetch(file.download_url);
+                    if (!contentResponse.ok) return { href: file.path, title: file.name };
+                    
+                    const htmlContent = await contentResponse.text();
+                    const titleMatch = htmlContent.match(/<title>(.*?)<\/title>/i);
+                    const title = titleMatch && titleMatch[1] ? titleMatch[1] : file.name.replace(/\.html?$/i, '').replace(/[-_]/g, ' ');
+                    return { href: file.path, title: title };
+                }
+                // 对于非 HTML 文件，直接使用文件名
+                return { href: file.path, title: file.name.replace(/[-_]/g, ' ') };
+
             } catch (e) {
                 // 如果获取内容失败，则回退到文件名
                 return { href: file.path, title: file.name.replace(/[-_]/g, ' ') };
