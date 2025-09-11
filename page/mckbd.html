@@ -13,6 +13,7 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
             overflow: hidden; /* 防止出现滚动条 */
+            background-color: #111; /* 和主页统一 */
         }
         .key {
             display: flex;
@@ -80,7 +81,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 antialiased">
+<body class="text-gray-200 antialiased">
 
     <div class="container mx-auto px-2 sm:px-4 py-8 md:py-12 min-h-screen flex flex-col items-center justify-center">
         <header class="text-center mb-8">
@@ -207,7 +208,7 @@
 
     </div>
 
-    <a id="homeButton" href="index.html" title="返回主页">
+    <a id="homeButton" href="https://duanechn.github.io/" title="返回主页">
         <i class="fa-solid fa-house"></i>
     </a>
 
@@ -261,11 +262,16 @@
         return keyCode;
     }
     
-    function getShortcutId(keysSet) {
-        if (keysSet.size === 0) return null;
+    function getShortcutId(keysSet, otherKeyId) {
+        const logicalModifiers = new Set(Array.from(keysSet).map(getLogicalKeyId));
+        if(otherKeyId) {
+            logicalModifiers.add(getLogicalKeyId(otherKeyId));
+        }
+
+        if (logicalModifiers.size === 0) return null;
         
-        const sortedModifiers = Array.from(keysSet).filter(k => modifierLogicalIds.includes(k)).sort((a,b) => modifierLogicalIds.indexOf(a) - modifierLogicalIds.indexOf(b));
-        const otherKeys = Array.from(keysSet).filter(k => !modifierLogicalIds.includes(k));
+        const sortedModifiers = Array.from(logicalModifiers).filter(k => modifierLogicalIds.includes(k)).sort((a,b) => modifierLogicalIds.indexOf(a) - modifierLogicalIds.indexOf(b));
+        const otherKeys = Array.from(logicalModifiers).filter(k => !modifierLogicalIds.includes(k));
         return [...sortedModifiers, ...otherKeys].join('_');
     }
 
@@ -275,17 +281,17 @@
     
     // -- Display and State Logic --
 
-    function updateAndDisplay(keysSet) {
-        const shortcutId = getShortcutId(keysSet);
+    function updateAndDisplay(keysToDisplay) {
+        const logicalKeys = new Set(Array.from(keysToDisplay).map(getLogicalKeyId));
+        const shortcutId = getShortcutId(logicalKeys);
         infoPanel.textContent = '\u00A0';
         
         if (shortcutId && shortcuts[shortcutId]) {
             const keys = shortcutId.split('_');
             const displayString = keys.map(formatKeyForDisplay).join(' + ');
             infoPanel.textContent = `${displayString} ：${shortcuts[shortcutId]}`;
-        } else if (keysSet.size > 0) {
-            const keyArray = Array.from(keysSet);
-            const displayString = keyArray.map(formatKeyForDisplay).join(' + ');
+        } else if (keysToDisplay.size > 0) {
+            const displayString = Array.from(logicalKeys).map(formatKeyForDisplay).join(' + ');
             infoPanel.textContent = displayString;
         }
     }
@@ -318,18 +324,18 @@
             updateAndDisplay(logicalModifiers);
             needsReset = false;
         } else { // Is a normal key
-            const logicalModifiers = new Set(Array.from(heldModifiers).map(getLogicalKeyId));
             const logicalKeyId = getLogicalKeyId(keyCode);
-            logicalModifiers.add(logicalKeyId);
+            const displayKeys = new Set(heldModifiers);
+            displayKeys.add(keyCode);
             
             // Highlight
             allKeys.forEach(k => k.classList.remove('key-pressed'));
-            heldModifiers.forEach(modCode => {
-                document.querySelector(`[data-key="${modCode}"]`)?.classList.add('key-pressed');
+            displayKeys.forEach(code => {
+                document.querySelector(`[data-key="${code}"]`)?.classList.add('key-pressed');
             });
-            keyElement?.classList.add('key-pressed');
 
-            updateAndDisplay(logicalModifiers);
+            const logicalDisplayKeys = new Set(Array.from(displayKeys).map(getLogicalKeyId));
+            updateAndDisplay(logicalDisplayKeys);
             needsReset = true;
         }
     }
