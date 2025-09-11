@@ -1,10 +1,264 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <title>hello</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- 使用 FontAwesome 提供图标 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <title>GitHub Pages 主页</title>
+  <style>
+    /* 样式表内容已内嵌 */
+    body {
+      background-color: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-size: 40px;
+      font-weight: bold;
+      /* 默认字体 */
+      font-family: 'Helvetica Neue', sans-serif;
+    }
+
+    .link-container {
+      text-align: center;
+    }
+
+    .link {
+      color: #000;
+      text-decoration: none;
+      margin-bottom: 30px;
+      display: inline-block;
+      position: relative;
+      transition: transform 0.3s ease-in-out, color 0.3s ease-in-out;
+    }
+
+    .link::before {
+      content: "";
+      position: absolute;
+      bottom: -2px;
+      left: 50%;
+      width: 0;
+      height: 4px;
+      background-color: currentColor;
+      transition: width 0.3s ease-in-out;
+      transform: translateX(-50%);
+    }
+
+    .link:hover {
+        transform: scale(1.1);
+    }
+
+    .link:hover::before {
+      width: 100%;
+    }
+
+    #colorChangeButton {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      border-radius: 50%;
+      background-color: #1f1f1f;
+      transition: transform 0.3s ease-in-out, background-color 0.3s ease-in-out;
+      color: #eee;
+      width: 50px;
+      height: 50px;
+      font-size: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #colorChangeButton:hover {
+      transform: scale(1.1);
+      background-color: #222;
+    }
+
+    .rotate {
+      animation: rotateAnimation 0.3s;
+    }
+
+    @keyframes rotateAnimation {
+      0% {
+        transform: rotate(0deg) scale(1.0);
+      }
+      100% {
+        transform: rotate(360deg) scale(1.0);
+      }
+    }
+  </style>
 </head>
 <body>
-hello
+  <div class="link-container" id="linkContainer">
+    <!-- 链接将由 JavaScript 动态生成 -->
+  </div>
+  
+  <button id="colorChangeButton" class="icon"><i class="fa-solid fa-arrows-rotate"></i></button>
+
+  <script>
+    // JavaScript 脚本内容已内嵌
+    const linkContainer = document.getElementById('linkContainer');
+    const colorChangeButton = document.getElementById('colorChangeButton');
+
+    // 定义颜色和字体变量
+    let randomColor;
+    let hoverColor;
+    let bodyFont;
+
+    // 可选字体列表
+    const fonts = [
+      'Helvetica Neue',
+      'Gill Sans',
+      'Verdana',
+      'Optima',
+      'Kefa',
+      'ubuntu',
+      'Georgia',
+      'Times New Roman',
+      'Arial'
+    ];
+
+    // 从 localStorage 加载设置
+    const loadSettings = () => {
+      randomColor = localStorage.getItem('ghp-randomColor') || 'rgb(85, 206, 173)';
+      hoverColor = localStorage.getItem('ghp-hoverColor') || 'rgb(170, 49, 82)';
+      bodyFont = localStorage.getItem('ghp-bodyFont') || 'Helvetica Neue';
+      document.body.style.fontFamily = bodyFont;
+    };
+
+    // 保存设置到 localStorage
+    const saveSettings = () => {
+      localStorage.setItem('ghp-randomColor', randomColor);
+      localStorage.setItem('ghp-hoverColor', hoverColor);
+      localStorage.setItem('ghp-bodyFont', bodyFont);
+    };
+
+    // 获取随机亮色
+    const getRandomBrightColor = () => {
+      const r = Math.floor(Math.random() * 156) + 100;
+      const g = Math.floor(Math.random() * 156) + 100;
+      const b = Math.floor(Math.random() * 156) + 100;
+      return `rgb(${r}, ${g}, ${b})`;
+    };
+    
+    // 获取互补色
+    const getComplementaryColor = (color) => {
+      const [r, g, b] = color.match(/\d+/g).map(Number);
+      return `rgb(${255 - r}, ${255 - g}, ${255 - b})`;
+    };
+
+    // 获取随机字体
+    const getRandomFont = () => {
+      const randomIndex = Math.floor(Math.random() * fonts.length);
+      return fonts[randomIndex];
+    };
+
+    // 将颜色应用到所有链接
+    const applyColors = () => {
+      const links = document.querySelectorAll('.link');
+      links.forEach(link => {
+        link.style.color = randomColor;
+        link.addEventListener('mouseover', () => link.style.color = hoverColor);
+        link.addEventListener('mouseout', () => link.style.color = randomColor);
+      });
+    };
+
+    // 通过 GitHub API 获取 pages 文件夹中的文件并生成链接
+    const displayPages = async () => {
+      // 自动从 URL 解析 GitHub 用户名和仓库名
+      const owner = window.location.hostname.split('.')[0];
+      const pathParts = window.location.pathname.split('/').filter(p => p);
+      const repo = pathParts.length > 0 ? pathParts[0] : `${owner}.github.io`;
+      const apiURL = `https://api.github.com/repos/${owner}/${repo}/contents/pages`;
+
+      try {
+        const response = await fetch(apiURL);
+        if (!response.ok) {
+          throw new Error(`GitHub API 错误: ${response.status}`);
+        }
+        const files = await response.json();
+        
+        linkContainer.innerHTML = ''; // 清空容器
+
+        // 检查 API 是否返回了错误信息（例如，文件夹不存在）
+        if (files.message) {
+          const errorMsg = document.createElement('p');
+          errorMsg.textContent = `错误：无法在仓库 "${owner}/${repo}" 中找到 /pages 文件夹。`;
+          errorMsg.style.color = '#ccc';
+          errorMsg.style.fontSize = '24px';
+          linkContainer.appendChild(errorMsg);
+          console.error(files.message);
+          return;
+        }
+
+        // 遍历文件并创建链接
+        files.forEach(file => {
+          if (file.type === 'file' && (file.name.endsWith('.html') || file.name.endsWith('.md'))) {
+            const a = document.createElement('a');
+            a.className = 'link';
+            // 链接到文件，GitHub Pages 会自动渲染
+            a.href = file.path;
+            // 美化文件名作为链接文本 (例如: "my-page.html" -> "my page")
+            a.textContent = file.name.replace(/\.(html|md|htm)$/i, '').replace(/[-_]/g, ' ');
+            linkContainer.appendChild(a);
+            linkContainer.appendChild(document.createElement('br'));
+          }
+        });
+
+        if (linkContainer.children.length === 0) {
+            const errorMsg = document.createElement('p');
+            errorMsg.textContent = `提示：/pages 文件夹为空。`;
+            errorMsg.style.color = '#ccc';
+            errorMsg.style.fontSize = '24px';
+            linkContainer.appendChild(errorMsg);
+        }
+
+        applyColors();
+
+      } catch (error) {
+        linkContainer.innerHTML = '';
+        const errorMsg = document.createElement('p');
+        errorMsg.textContent = '加载页面列表失败。请检查网络连接或仓库设置。';
+        errorMsg.style.color = '#ccc';
+        errorMsg.style.fontSize = '24px';
+        linkContainer.appendChild(errorMsg);
+        console.error('获取 pages 失败:', error);
+      }
+    };
+
+    // 为按钮添加点击事件监听器
+    colorChangeButton.addEventListener('click', (event) => {
+      // 按住 Ctrl/Command 键点击更换字体
+      if (event.metaKey || event.ctrlKey) {
+        bodyFont = getRandomFont();
+        document.body.style.fontFamily = bodyFont;
+      } else {
+        // 普通点击更换颜色
+        randomColor = getRandomBrightColor();
+        hoverColor = getComplementaryColor(randomColor);
+        applyColors();
+      }
+
+      saveSettings(); // 保存新设置
+
+      // 添加旋转动画
+      colorChangeButton.classList.add('rotate');
+      setTimeout(() => {
+        colorChangeButton.classList.remove('rotate');
+      }, 300);
+    });
+
+    // 页面加载完成后立即执行初始化操作
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      displayPages();
+      applyColors();
+    });
+
+  </script>
 </body>
 </html>
